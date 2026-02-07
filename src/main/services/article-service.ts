@@ -1,4 +1,5 @@
 import { extract } from '@extractus/article-extractor';
+import { toProxyUrl } from './image-proxy.js';
 
 export interface ArticleData {
   title: string;
@@ -13,22 +14,25 @@ export interface ArticleData {
 export class ArticleService {
   async extractArticle(url: string): Promise<ArticleData | null> {
     try {
-      const article = await extract(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+      const article = await extract(url);
 
       if (!article) {
         return null;
       }
 
+      // Convert all image URLs in content to proxy URLs
+      let content = article.content || '';
+      content = this.proxyImages(content);
+
+      // Also proxy the thumbnail
+      const thumbnail = article.image ? toProxyUrl(article.image) : null;
+
       return {
         title: article.title || url,
-        content: article.content || '',
+        content,
         author: article.author || null,
         publishedAt: article.published ? new Date(article.published).getTime() : null,
-        thumbnail: article.image || null,
+        thumbnail,
         description: article.description || null,
         siteName: article.source || null,
       };
@@ -36,6 +40,21 @@ export class ArticleService {
       console.error('Failed to extract article:', error);
       return null;
     }
+  }
+
+  private proxyImages(html: string): string {
+    // Replace img src attributes with proxy URLs
+    return html.replace(
+      /<img([^>]*)\ssrc=["']([^"']+)["']([^>]*)>/gi,
+      (match, before, src, after) => {
+        // Skip data URLs and blob URLs
+        if (src.startsWith('data:') || src.startsWith('blob:')) {
+          return match;
+        }
+        const proxyUrl = toProxyUrl(src);
+        return `<img${before} src="${proxyUrl}"${after}>`;
+      }
+    );
   }
 
   isArticleUrl(url: string): boolean {

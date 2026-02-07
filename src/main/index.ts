@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDatabase } from './database/index.js';
 import { registerIpcHandlers } from './ipc/index.js';
+import { registerImageProxyProtocol } from './services/image-proxy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,15 +28,27 @@ async function createWindow() {
     show: false,
   });
 
-  // Allow YouTube embeds
+  // Allow external resources and YouTube embeds
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com;"]
+        'Content-Security-Policy': ["default-src 'self' img-proxy:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data: blob: img-proxy:; frame-src https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com;"]
       }
     });
   });
+
+  // Bypass referrer check for images (fix anti-hotlinking)
+  mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*/*'] },
+    (details, callback) => {
+      // Remove referrer for image requests to bypass anti-hotlinking
+      if (details.resourceType === 'image') {
+        delete details.requestHeaders['Referer'];
+      }
+      callback({ requestHeaders: details.requestHeaders });
+    }
+  );
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
@@ -55,6 +68,7 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  registerImageProxyProtocol();
   await initDatabase();
   registerIpcHandlers(ipcMain);
   await createWindow();

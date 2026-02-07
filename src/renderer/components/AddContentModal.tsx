@@ -100,12 +100,14 @@ export function AddContentModal({ isOpen, onClose }: AddContentModalProps) {
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">标题 (可选，YouTube会自动获取)</label>
+            <label className="block text-sm font-medium mb-2">
+              标题 (可选{(isYouTube || isArticle) ? '，会自动获取' : ''})
+            </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={isYouTube ? '留空将自动获取视频标题' : '文章标题'}
+              placeholder={(isYouTube || isArticle) ? '留空将自动获取标题' : '文章标题'}
               className="w-full px-3 py-2 border border-[var(--color-border)] rounded-md bg-[var(--color-background)] text-sm"
             />
           </div>
