@@ -39,12 +39,42 @@ async function createWindow() {
   });
 
   // Bypass referrer check for images (fix anti-hotlinking)
+  // Map of domains to their required Referer values
+  const refererMap: Record<string, string> = {
+    'sspai.com': 'https://sspai.com/',
+    'cdn.sspai.com': 'https://sspai.com/',
+    'zhihu.com': 'https://www.zhihu.com/',
+    'zhimg.com': 'https://www.zhihu.com/',
+    'weibo.com': 'https://weibo.com/',
+    'sinaimg.cn': 'https://weibo.com/',
+    'jianshu.com': 'https://www.jianshu.com/',
+    'jianshuapi.com': 'https://www.jianshu.com/',
+  };
+
   mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
     { urls: ['*://*/*'] },
     (details, callback) => {
-      // Remove referrer for image requests to bypass anti-hotlinking
       if (details.resourceType === 'image') {
-        delete details.requestHeaders['Referer'];
+        const url = new URL(details.url);
+        const hostname = url.hostname;
+        
+        // Find matching referer from map
+        let referer: string | null = null;
+        for (const [domain, ref] of Object.entries(refererMap)) {
+          if (hostname.includes(domain)) {
+            referer = ref;
+            break;
+          }
+        }
+
+        if (referer) {
+          // Spoof Referer for known anti-hotlinking sites
+          details.requestHeaders['Referer'] = referer;
+          details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        } else {
+          // For other sites, remove Referer (works for sites allowing empty referer)
+          delete details.requestHeaders['Referer'];
+        }
       }
       callback({ requestHeaders: details.requestHeaders });
     }
