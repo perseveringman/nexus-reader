@@ -153,7 +153,7 @@ export function YouTubeReader({ videoId, title, onClose }: YouTubeReaderProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden pt-[28px]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
         <button

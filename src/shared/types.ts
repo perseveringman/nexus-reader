@@ -51,3 +51,26 @@ export interface Settings {
   twitterBearerToken: string;
   ytdlpBrowser: string;
 }
+
+export interface Highlight {
+  id: string;
+  contentId: string;
+  text: string;
+  note?: string;
+  color: string;
+  startOffset: number;
+  endOffset: number;
+  paragraphIndex: number;
+  tags: string[];
+  createdAt: number;
+}
+
+export interface CreateHighlightInput {
+  contentId: string;
+  text: string;
+  note?: string;
+  color?: string;
+  startOffset: number;
+  endOffset: number;
+  paragraphIndex: number;
+}

@@ -18,6 +18,35 @@ interface SubtitleEntry {
   text: string;
 }
 
+interface CreateHighlightInput {
+  contentId: string;
+  text: string;
+  note?: string;
+  color?: string;
+  startOffset: number;
+  endOffset: number;
+  paragraphIndex: number;
+}
+
+interface Highlight {
+  id: string;
+  contentId: string;
+  text: string;
+  note?: string;
+  color: string;
+  startOffset: number;
+  endOffset: number;
+  paragraphIndex: number;
+  tags: string[];
+  createdAt: number;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
 interface ApiType {
   getContents: (filter?: object) => Promise<unknown>;
   addContent: (content: object) => Promise<unknown>;
@@ -41,6 +70,16 @@ interface ApiType {
   exportJson: () => Promise<{ success: boolean; path?: string }>;
   importOpml: () => Promise<{ success: boolean; feeds?: Array<{ title: string; url: string }> }>;
   importJson: () => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  createHighlight: (input: CreateHighlightInput) => Promise<Highlight>;
+  getHighlights: (contentId: string) => Promise<Highlight[]>;
+  updateHighlight: (id: string, updates: Partial<Highlight>) => Promise<Highlight | null>;
+  deleteHighlight: (id: string) => Promise<{ success: boolean }>;
+  addHighlightTag: (highlightId: string, tagName: string) => Promise<{ success: boolean }>;
+  removeHighlightTag: (highlightId: string, tagName: string) => Promise<{ success: boolean }>;
+  addContentTag: (contentId: string, tagName: string) => Promise<{ success: boolean }>;
+  removeContentTag: (contentId: string, tagName: string) => Promise<{ success: boolean }>;
+  getContentTags: (contentId: string) => Promise<Tag[]>;
+  getAllTags: () => Promise<Tag[]>;
   on: (channel: string, callback: (...args: unknown[]) => void) => void;
   off: (channel: string, callback: (...args: unknown[]) => void) => void;
 }
@@ -79,6 +118,20 @@ const api: ApiType = {
   exportJson: () => ipcRenderer.invoke('export:json'),
   importOpml: () => ipcRenderer.invoke('import:opml'),
   importJson: () => ipcRenderer.invoke('import:json'),
+  
+  // Highlights
+  createHighlight: (input: CreateHighlightInput) => ipcRenderer.invoke('create-highlight', input),
+  getHighlights: (contentId: string) => ipcRenderer.invoke('get-highlights', contentId),
+  updateHighlight: (id: string, updates: Partial<Highlight>) => ipcRenderer.invoke('update-highlight', id, updates),
+  deleteHighlight: (id: string) => ipcRenderer.invoke('delete-highlight', id),
+  addHighlightTag: (highlightId: string, tagName: string) => ipcRenderer.invoke('add-highlight-tag', highlightId, tagName),
+  removeHighlightTag: (highlightId: string, tagName: string) => ipcRenderer.invoke('remove-highlight-tag', highlightId, tagName),
+  
+  // Content tags
+  addContentTag: (contentId: string, tagName: string) => ipcRenderer.invoke('add-content-tag', contentId, tagName),
+  removeContentTag: (contentId: string, tagName: string) => ipcRenderer.invoke('remove-content-tag', contentId, tagName),
+  getContentTags: (contentId: string) => ipcRenderer.invoke('get-content-tags', contentId),
+  getAllTags: () => ipcRenderer.invoke('get-all-tags'),
   
   // Events
   on: (channel: string, callback: (...args: unknown[]) => void) => {
